@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - Enterprise Suite</title>
+
+    <!-- Kendo UI Default v2 Theme -->
+    <link rel="stylesheet" href="https://kendo.cdn.telerik.com/themes/9.0.0/default/default-main.css" />
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+
+    <!-- Layout CSS -->
+    <link rel="stylesheet" href="~/css/layout.css" asp-append-version="true" />
+
+    @await RenderSectionAsync("Styles", required: false)
+</head>
+<body>
+
+    <!-- ═══════════════════════════════════════════════ -->
+    <!--                   HEADER                        -->
+    <!-- ═══════════════════════════════════════════════ -->
+    <header class="app-header" id="appHeader">
+        <div class="header-left">
+            <!-- Logo Zone (260px) -->
+            <div class="logo-zone" id="logoZone">
+                <a href="/" class="logo-link">
+                    <div class="logo-icon">
+                        <i class="fa-solid fa-layer-group"></i>
+                    </div>
+                    <div class="logo-text" id="logoText">
+                        <span class="logo-title">EnterpriseSuite</span>
+                        <span class="logo-subtitle">Management Platform</span>
+                    </div>
+                </a>
+            </div>
+
+            <!-- Sidebar Toggle Button -->
+            <button class="sidebar-toggle" id="sidebarToggle" title="Toggle Menu" aria-label="Toggle Sidebar">
+                <span class="toggle-bar"></span>
+                <span class="toggle-bar"></span>
+                <span class="toggle-bar"></span>
+            </button>
+
+            <!-- Search Box -->
+            <div class="header-search" id="headerSearch">
+                <div class="search-wrapper">
+                    <i class="fa-solid fa-magnifying-glass search-icon"></i>
+                    <input type="text"
+                           class="search-input"
+                           id="globalSearch"
+                           placeholder="Search modules, reports, users..."
+                           autocomplete="off" />
+                    <kbd class="search-kbd">Ctrl K</kbd>
+                </div>
+            </div>
+        </div>
+
+        <div class="header-right">
+            <!-- Notification Bell -->
+            <button class="header-icon-btn notification-btn" id="notificationBtn" title="Notifications" aria-label="Notifications">
+                <i class="fa-regular fa-bell"></i>
+                <span class="notification-badge" id="notificationBadge">5</span>
+            </button>
+
+            <!-- Theme Toggle -->
+            <button class="header-icon-btn theme-toggle-btn" id="themeToggleBtn" title="Toggle Theme" aria-label="Toggle Theme">
+                <i class="fa-solid fa-sun" id="themeIcon"></i>
+            </button>
+
+            <!-- Settings -->
+            <button class="header-icon-btn settings-btn" id="settingsBtn" title="Application Settings" aria-label="Settings">
+                <i class="fa-solid fa-gear"></i>
+            </button>
+
+            <!-- User Avatar + Dropdown -->
+            <div class="user-menu-wrapper" id="userMenuWrapper">
+                <button class="user-avatar-btn" id="userAvatarBtn" title="User Menu" aria-label="User Menu" aria-expanded="false">
+                    <div class="user-avatar">
+                        <img src="https://ui-avatars.com/api/?name=Admin+User&background=1a56db&color=fff&size=40&bold=true"
+                             alt="User Avatar"
+                             id="userAvatarImg"
+                             onerror="this.style.display='none'; document.getElementById('userAvatarFallback').style.display='flex';" />
+                        <div class="avatar-fallback" id="userAvatarFallback" style="display:none;">
+                            <i class="fa-solid fa-user"></i>
+                        </div>
+                    </div>
+                    <div class="user-info" id="userInfoHeader">
+                        <span class="user-name">Admin User</span>
+                        <span class="user-role">Super Admin</span>
+                    </div>
+                    <i class="fa-solid fa-chevron-down user-chevron"></i>
+                </button>
+
+                <!-- User Dropdown Menu -->
+                <div class="user-dropdown" id="userDropdown" role="menu" aria-hidden="true">
+                    <div class="dropdown-header">
+                        <div class="dropdown-avatar">
+                            <img src="https://ui-avatars.com/api/?name=Admin+User&background=1a56db&color=fff&size=48&bold=true" alt="User" />
+                        </div>
+                        <div class="dropdown-user-info">
+                            <strong id="dropdownUserName">Admin User</strong>
+                            <small id="dropdownUserEmail">admin@enterprise.com</small>
+                        </div>
+                    </div>
+                    <div class="dropdown-divider"></div>
+                    <a href="#" class="dropdown-item" id="profileLink" data-action="profile" role="menuitem">
+                        <i class="fa-regular fa-user"></i>
+                        <span>My Profile</span>
+                    </a>
+                    <a href="#" class="dropdown-item" id="changePasswordLink" data-action="changePassword" role="menuitem">
+                        <i class="fa-solid fa-key"></i>
+                        <span>Change Password</span>
+                    </a>
+                    <a href="#" class="dropdown-item" id="preferencesLink" data-action="preferences" role="menuitem">
+                        <i class="fa-solid fa-sliders"></i>
+                        <span>Preferences</span>
+                    </a>
+                    <div class="dropdown-divider"></div>
+                    <a href="#" class="dropdown-item dropdown-item-danger" id="logoutLink" data-action="logout" role="menuitem">
+                        <i class="fa-solid fa-arrow-right-from-bracket"></i>
+                        <span>Sign Out</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Notification Panel -->
+    <div class="notification-panel" id="notificationPanel" aria-hidden="true">
+        <div class="panel-header">
+            <h3>Notifications</h3>
+            <button class="mark-all-read" id="markAllRead">Mark all read</button>
+        </div>
+        <div class="panel-body" id="notificationList">
+            <div class="notification-item unread">
+                <div class="notif-icon bg-blue"><i class="fa-solid fa-user-plus"></i></div>
+                <div class="notif-content">
+                    <p>New employee onboarding request</p>
+                    <small>2 minutes ago</small>
+                </div>
+            </div>
+            <div class="notification-item unread">
+                <div class="notif-icon bg-green"><i class="fa-solid fa-check-circle"></i></div>
+                <div class="notif-content">
+                    <p>Payroll processing completed</p>
+                    <small>1 hour ago</small>
+                </div>
+            </div>
+            <div class="notification-item unread">
+                <div class="notif-icon bg-orange"><i class="fa-solid fa-triangle-exclamation"></i></div>
+                <div class="notif-content">
+                    <p>Leave approval pending (3)</p>
+                    <small>3 hours ago</small>
+                </div>
+            </div>
+            <div class="notification-item">
+                <div class="notif-icon bg-purple"><i class="fa-solid fa-chart-line"></i></div>
+                <div class="notif-content">
+                    <p>Monthly CRM report ready</p>
+                    <small>Yesterday</small>
+                </div>
+            </div>
+            <div class="notification-item">
+                <div class="notif-icon bg-red"><i class="fa-solid fa-shield-halved"></i></div>
+                <div class="notif-content">
+                    <p>Security audit scheduled for tomorrow</p>
+                    <small>Yesterday</small>
+                </div>
+            </div>
+        </div>
+        <div class="panel-footer">
+            <a href="#" id="viewAllNotifications">View All Notifications</a>
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════ -->
+    <!--              MAIN WRAPPER                       -->
+    <!-- ═══════════════════════════════════════════════ -->
+    <div class="app-wrapper">
+
+        <!-- Mobile Overlay -->
+        <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+        <!-- ─────────────────────────────────── -->
+        <!--           SIDEBAR                   -->
+        <!-- ─────────────────────────────────── -->
+        <aside class="app-sidebar" id="appSidebar" role="navigation" aria-label="Main Navigation">
+            <nav class="sidebar-nav" id="sidebarNav">
+                <ul class="nav-list" id="navList" role="list">
+                    <!-- Menu items injected dynamically by layout.js -->
+                    <li class="nav-loading">
+                        <i class="fa-solid fa-spinner fa-spin"></i>
+                        <span>Loading menu...</span>
+                    </li>
+                </ul>
+            </nav>
+
+            <!-- Sidebar Footer Info -->
+            <div class="sidebar-footer-info" id="sidebarFooterInfo">
+                <div class="sidebar-version">
+                    <i class="fa-solid fa-code-branch"></i>
+                    <span class="version-text">v1.0.0</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- ─────────────────────────────────── -->
+        <!--         MAIN CONTENT                -->
+        <!-- ─────────────────────────────────── -->
+        <main class="app-main" id="appMain" role="main">
+            <!-- Content Loading Indicator -->
+            <div class="content-loader" id="contentLoader" aria-hidden="true">
+                <div class="loader-spinner">
+                    <div class="spinner-ring"></div>
+                </div>
+                <p>Loading content...</p>
+            </div>
+
+            <!-- Actual Page Content -->
+            <div class="content-area" id="contentArea">
+                @RenderBody()
+            </div>
+        </main>
+
+    </div>
+
+    <!-- ═══════════════════════════════════════════════ -->
+    <!--                  FOOTER                         -->
+    <!-- ═══════════════════════════════════════════════ -->
+    <footer class="app-footer" id="appFooter">
+        <div class="footer-inner">
+            <span class="footer-left">
+                &copy; @DateTime.Now.Year <strong>EnterpriseSuite</strong> — All rights reserved.
+            </span>
+            <span class="footer-right">
+                <span id="currentDateTime"></span>
+                &nbsp;|&nbsp;
+                <span>Powered by .NET 10</span>
+            </span>
+        </div>
+    </footer>
+
+    <!-- ═══════════════════════════════════════════════ -->
+    <!--                  SCRIPTS                        -->
+    <!-- ═══════════════════════════════════════════════ -->
+    <!-- jQuery (required for Kendo) -->
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+
+    <!-- Kendo UI jQuery -->
+    <script src="https://kendo.cdn.telerik.com/2024.3.1015/js/kendo.all.min.js"></script>
+
+    <!-- Layout JS -->
+    <script src="~/js/layout.js" asp-append-version="true"></script>
+
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>
