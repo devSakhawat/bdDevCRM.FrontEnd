@@ -196,6 +196,23 @@
     <!--           SIDEBAR                   -->
     <!-- ─────────────────────────────────── -->
     <aside class="app-sidebar" id="appSidebar" role="navigation" aria-label="Main Navigation">
+      <!-- Sidebar Search -->
+      <div class="sidebar-search-wrapper" id="sidebarSearchWrapper">
+        <div class="sidebar-search-box">
+          <i class="fa-solid fa-magnifying-glass sidebar-search-icon"></i>
+          <input type="text"
+                 id="sidebarSearchInput"
+                 class="sidebar-search-input"
+                 placeholder="Search menus..."
+                 autocomplete="off"
+                 spellcheck="false" />
+          <button class="sidebar-search-clear" id="sidebarSearchClear" aria-label="Clear search">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+        <!-- Search result count -->
+        <div class="sidebar-search-meta" id="sidebarSearchMeta"></div>
+      </div>
       <nav class="sidebar-nav" id="sidebarNav">
         <ul class="nav-list" id="navList" role="list">
           <!-- Menu items injected dynamically by layout.js -->
@@ -208,10 +225,10 @@
 
       <!-- Sidebar Footer Info -->
       <div class="sidebar-footer-info" id="sidebarFooterInfo">
-        <div class="sidebar-version">
+       @*  <div class="sidebar-version">
           <i class="fa-solid fa-code-branch"></i>
           <span class="version-text">v1.0.0</span>
-        </div>
+        </div> *@
       </div>
     </aside>
 
@@ -253,6 +270,66 @@
 
   
   <!-- ═══════════════════════════════════════════════ -->
+  <!--           COMMAND PALETTE (Ctrl+K)              -->
+  <!-- ═══════════════════════════════════════════════ -->
+  <div class="command-palette-overlay" id="commandPaletteOverlay" aria-hidden="true">
+    <div class="command-palette" id="commandPalette" role="dialog" aria-label="Command Palette">
+
+      <!-- Search Input -->
+      <div class="cp-search-row">
+        <i class="fa-solid fa-magnifying-glass cp-search-icon"></i>
+        <input type="text"
+               id="cpSearchInput"
+               class="cp-search-input"
+               placeholder="Search menus, modules, pages..."
+               autocomplete="off"
+               spellcheck="false"
+               aria-label="Search" />
+        <kbd class="cp-esc-hint">ESC</kbd>
+      </div>
+
+      <!-- Results Area -->
+      <div class="cp-results-area" id="cpResultsArea">
+
+        <!-- Recently Visited (default state) -->
+        <div class="cp-section" id="cpRecentSection">
+          <div class="cp-section-label">
+            <i class="fa-solid fa-clock-rotate-left"></i>
+            Recently Visited
+          </div>
+          <ul class="cp-result-list" id="cpRecentList" role="listbox"></ul>
+        </div>
+
+        <!-- Search Results -->
+        <div class="cp-section" id="cpSearchSection" style="display:none;">
+          <div class="cp-section-label">
+            <i class="fa-solid fa-list"></i>
+            <span id="cpSearchResultLabel">Results</span>
+          </div>
+          <ul class="cp-result-list" id="cpSearchList" role="listbox"></ul>
+        </div>
+
+        <!-- No Results -->
+        <div class="cp-no-results" id="cpNoResults" style="display:none;">
+          <i class="fa-solid fa-face-meh"></i>
+          <p>No results for "<span id="cpNoResultsQuery"></span>"</p>
+          <small>Try different keywords</small>
+        </div>
+
+      </div>
+
+      <!-- Footer hint -->
+      <div class="cp-footer">
+        <span><kbd>↑</kbd><kbd>↓</kbd> Navigate</span>
+        <span><kbd>Enter</kbd> Open</span>
+        <span><kbd>ESC</kbd> Close</span>
+      </div>
+
+    </div>
+  </div>
+
+  
+  <!-- ═══════════════════════════════════════════════ -->
   <!--                  SCRIPTS                        -->
   <!-- ═══════════════════════════════════════════════ -->
   <script src="~/lib/jquery/dist/jquery.min.js"></script>
@@ -265,5 +342,6 @@
 
   <script src="~/js/site.js" asp-append-version="true"></script>
   @await RenderSectionAsync("Scripts", required: false)
+
 </body>
 </html>

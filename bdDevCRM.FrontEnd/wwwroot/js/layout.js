@@ -51,7 +51,25 @@
     markAllRead: document.getElementById('markAllRead'),
     currentDateTime: document.getElementById('currentDateTime'),
     globalSearch: document.getElementById('globalSearch'),
-    sidebarFooterInfo: document.getElementById('sidebarFooterInfo')
+    sidebarFooterInfo: document.getElementById('sidebarFooterInfo'),
+
+    // Sidebar Search
+    sidebarSearchInput: document.getElementById('sidebarSearchInput'),
+    sidebarSearchClear: document.getElementById('sidebarSearchClear'),
+    sidebarSearchMeta: document.getElementById('sidebarSearchMeta'),
+
+    // Command Palette
+    commandPaletteOverlay: document.getElementById('commandPaletteOverlay'),
+    commandPalette: document.getElementById('commandPalette'),
+    cpSearchInput: document.getElementById('cpSearchInput'),
+    cpResultsArea: document.getElementById('cpResultsArea'),
+    cpRecentSection: document.getElementById('cpRecentSection'),
+    cpRecentList: document.getElementById('cpRecentList'),
+    cpSearchSection: document.getElementById('cpSearchSection'),
+    cpSearchList: document.getElementById('cpSearchList'),
+    cpSearchResultLabel: document.getElementById('cpSearchResultLabel'),
+    cpNoResults: document.getElementById('cpNoResults'),
+    cpNoResultsQuery: document.getElementById('cpNoResultsQuery'),
   };
 
   /* ══════════════════════════════════════
@@ -64,7 +82,12 @@
     activeMenuId: null,
     currentTheme: 'light',
     menuData: [],
-    notificationCount: 5
+    notificationCount: 5,
+    // Sidebar Search && Command Palette
+    recentMenus: [],      // Recently visited menu items
+    cpFocusedIndex: -1,      // Command palette keyboard nav
+    cpCurrentResults: [],      // Current CP search results
+    maxRecentMenus: 10        // How many recent item
   };
 
   /* ══════════════════════════════════════
@@ -74,6 +97,7 @@
     detectMobile();
     restoreTheme();
     restoreSidebarState();
+    loadRecentMenus();
     loadMenuFromServer();
     bindEvents();
     startClock();
@@ -761,20 +785,48 @@
   /* ══════════════════════════════════════
      SEARCH — Keyboard Shortcut
   ══════════════════════════════════════ */
+  //function handleSearchShortcut(e) {
+  //  if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+  //    e.preventDefault();
+  //    if (DOM.globalSearch) {
+  //      DOM.globalSearch.focus();
+  //      DOM.globalSearch.select();
+  //    }
+  //  }
+
+  //  if (e.key === 'Escape') {
+  //    closeAllPanels();
+  //    if (DOM.globalSearch && document.activeElement === DOM.globalSearch) {
+  //      DOM.globalSearch.blur();
+  //    }
+  //  }
+  //}
+
   function handleSearchShortcut(e) {
+
+    // ── Ctrl+K → Command Palette open/close ──────────────────────
     if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
       e.preventDefault();
-      if (DOM.globalSearch) {
-        DOM.globalSearch.focus();
-        DOM.globalSearch.select();
+      e.stopPropagation();
+
+      if (DOM.commandPaletteOverlay &&
+        DOM.commandPaletteOverlay.classList.contains('open')) {
+        closeCommandPalette();
+      } else {
+        openCommandPalette();
       }
+      return;
     }
 
+    // ── ESC → সব close করো ───────────────────────────────────────
     if (e.key === 'Escape') {
-      closeAllPanels();
-      if (DOM.globalSearch && document.activeElement === DOM.globalSearch) {
-        DOM.globalSearch.blur();
+      if (DOM.commandPaletteOverlay &&
+        DOM.commandPaletteOverlay.classList.contains('open')) {
+        closeCommandPalette();
+        return;
       }
+      closeAllPanels();
+      clearSidebarSearch();
     }
   }
 
@@ -929,6 +981,38 @@
       });
     }
 
+    // Notification badge init
+    updateNotificationBadge();
+
+    // ── Sidebar Search ───────────────────────────────────────────
+    initSidebarSearch();
+
+    // ── Command Palette ──────────────────────────────────────────
+
+    // Header search box click → Command Palette খোলে
+    if (DOM.globalSearch) {
+      DOM.globalSearch.addEventListener('focus', (e) => {
+        e.preventDefault();
+        DOM.globalSearch.blur();
+        openCommandPalette();
+      });
+    }
+
+    // Overlay click → close
+    if (DOM.commandPaletteOverlay) {
+      DOM.commandPaletteOverlay.addEventListener('click', (e) => {
+        if (e.target === DOM.commandPaletteOverlay) closeCommandPalette();
+      });
+    }
+
+    // CP Search input
+    if (DOM.cpSearchInput) {
+      DOM.cpSearchInput.addEventListener('input',
+        debounce((e) => handleCPSearch(e.target.value), 150)
+      );
+      DOM.cpSearchInput.addEventListener('keydown', handleCPKeydown);
+    }
+
     // Global click — close panels
     document.addEventListener('click', (e) => {
       if (!e.target.closest('#userMenuWrapper')) closeUserDropdown();
@@ -943,8 +1027,10 @@
     // Browser back/forward
     window.addEventListener('popstate', handlePopState);
 
-    // Notification badge init
-    updateNotificationBadge();
+    // ESC hint click
+    const escHint = document.querySelector('.cp-esc-hint');
+    if (escHint) escHint.addEventListener('click', closeCommandPalette);
+
   }
 
   /* ══════════════════════════════════════
@@ -1068,6 +1154,538 @@
       if (label) label.textContent = 'Expand All';
       btn.setAttribute('title', 'Expand all menus');
     }
+  }
+
+  /* ══════════════════════════════════════════════════════
+   SIDEBAR SEARCH
+══════════════════════════════════════════════════════ */
+
+  // Flat list তৈরি করো সব leaf + parent menu থেকে (search এর জন্য)
+  function buildFlatMenuList(items, parentPath = []) {
+    const flat = [];
+
+    items.forEach(item => {
+      const currentPath = [...parentPath, item.label];
+
+      if (item.url) {
+        // Leaf node — searchable item
+        flat.push({
+          id: item.id,
+          label: item.label,
+          url: item.url,
+          icon: item.icon,
+          path: currentPath,           // ['CRM', 'Contacts', 'All Contacts']
+          pathStr: currentPath.join(' '), // search এর জন্য
+        });
+      }
+
+      if (item.children && item.children.length > 0) {
+        const children = buildFlatMenuList(item.children, currentPath);
+        flat.push(...children);
+      }
+    });
+
+    return flat;
+  }
+
+  function initSidebarSearch() {
+    if (!DOM.sidebarSearchInput) return;
+
+    DOM.sidebarSearchInput.addEventListener('input', debounce(handleSidebarSearch, 200));
+
+    DOM.sidebarSearchInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        clearSidebarSearch();
+        DOM.sidebarSearchInput.blur();
+      }
+    });
+
+    if (DOM.sidebarSearchClear) {
+      DOM.sidebarSearchClear.addEventListener('click', () => {
+        clearSidebarSearch();
+        DOM.sidebarSearchInput.focus();
+      });
+    }
+  }
+
+  function handleSidebarSearch() {
+    const rawQuery = DOM.sidebarSearchInput
+      ? DOM.sidebarSearchInput.value.trim().toLowerCase()
+      : '';
+
+    // Clear button visibility
+    if (DOM.sidebarSearchClear) {
+      DOM.sidebarSearchClear.classList.toggle('visible', rawQuery.length > 0);
+    }
+
+    if (!rawQuery) {
+      clearSidebarSearch();
+      return;
+    }
+
+    if (!DOM.navList) return;
+
+    // ── Token split — space দিয়ে আলাদা করো ──────────────────────
+    // "crm admin" → ["crm", "admin"]
+    // একাধিক space হলেও handle হবে
+    const tokens = rawQuery
+      .split(/\s+/)
+      .filter(t => t.length > 0);
+
+    // ── Section labels hide করো search mode-এ ────────────────────
+    DOM.navList.querySelectorAll('.nav-section-label').forEach(el => {
+      el.style.display = 'none';
+    });
+
+    // ── প্রথমে সব items visible করো ──────────────────────────────
+    DOM.navList.querySelectorAll('.nav-item').forEach(item => {
+      item.classList.remove('search-hidden');
+    });
+
+    let matchCount = 0;
+
+    // ── প্রতিটা leaf nav-item check করো ─────────────────────────
+    // Leaf = url আছে এমন item (child item)
+    const allItems = DOM.navList.querySelectorAll('.nav-item');
+
+    allItems.forEach(item => {
+      const labelEl = item.querySelector(':scope > .nav-link > .nav-label');
+      if (!labelEl) return;
+
+      // এই item-এর full path text তৈরি করো
+      // নিজের label + সব parent-এর label মিলিয়ে
+      const fullPath = getItemFullPath(item).toLowerCase();
+
+      // ── AND logic — সব token fullPath-এ থাকতে হবে ───────────
+      const allTokensMatch = tokens.every(token => fullPath.includes(token));
+
+      if (allTokensMatch) {
+        matchCount++;
+        item.classList.remove('search-hidden');
+
+        // ── Label-এ match হওয়া tokens highlight করো ─────────
+        let labelText = labelEl.textContent;
+        tokens.forEach(token => {
+          labelText = labelText.replace(
+            new RegExp(`(${escapeRegex(token)})`, 'gi'),
+            '<mark class="search-highlight">$1</mark>'
+          );
+        });
+        labelEl.innerHTML = labelText;
+
+        // ── Parent chain দেখাও এবং open করো ─────────────────
+        showParentChain(item);
+
+      } else {
+        // Children check — এই parent-এর কোনো child match করে কিনা
+        // এটা parent items এর জন্য — নিচে আলাদা pass-এ handle হবে
+        item.classList.add('search-hidden');
+      }
+    });
+
+    // ── Second pass — parent items যাদের visible child আছে ───────
+    // নিচ থেকে উপরে উঠে যাও
+    const allNavItems = Array.from(
+      DOM.navList.querySelectorAll('.nav-item')
+    ).reverse(); // reverse করো যেন child আগে process হয়
+
+    allNavItems.forEach(item => {
+      const hasVisibleChild = item.querySelector(
+        '.nav-submenu .nav-item:not(.search-hidden)'
+      );
+
+      if (hasVisibleChild) {
+        item.classList.remove('search-hidden');
+        openSubmenu(item); // accordion open করো
+      }
+    });
+
+    // ── Match count update ────────────────────────────────────────
+    if (DOM.sidebarSearchMeta) {
+      if (matchCount > 0) {
+        const tokenDisplay = tokens.join(' + ');
+        DOM.sidebarSearchMeta.textContent =
+          `${matchCount} result${matchCount > 1 ? 's' : ''} for "${tokenDisplay}"`;
+      } else {
+        DOM.sidebarSearchMeta.textContent = 'No results found';
+      }
+    }
+  }
+
+  // ── Helper: item-এর full path text বের করো ───────────────────────
+  // Example: "CRM > Contacts > All Contacts" → "crm contacts all contacts"
+  // এই combined text-এ AND token search হয়
+  function getItemFullPath(navItem) {
+    const parts = [];
+
+    // নিজের label
+    const labelEl = navItem.querySelector(':scope > .nav-link > .nav-label');
+    if (labelEl) parts.push(labelEl.textContent.trim());
+
+    // সব parent-এর label collect করো
+    let current = navItem.parentElement;
+    while (current && current !== DOM.navList) {
+      if (current.classList.contains('nav-item')) {
+        const parentLabel = current.querySelector(
+          ':scope > .nav-link > .nav-label'
+        );
+        if (parentLabel) parts.push(parentLabel.textContent.trim());
+      }
+      current = current.parentElement;
+    }
+
+    return parts.join(' ');
+  }
+
+  function showParentChain(navItem) {
+    let current = navItem.parentElement;
+    while (current && current !== DOM.navList) {
+      if (current.classList.contains('nav-item')) {
+        current.classList.remove('search-hidden');
+      }
+      if (current.classList.contains('nav-submenu')) {
+        const parentItem = current.parentElement;
+        if (parentItem) {
+          parentItem.classList.remove('search-hidden');
+          openSubmenu(parentItem);
+        }
+      }
+      current = current.parentElement;
+    }
+  }
+
+  function clearSidebarSearch() {
+    if (!DOM.navList) return;
+
+    // সব items restore করো
+    DOM.navList.querySelectorAll('.nav-item').forEach(item => {
+      item.classList.remove('search-hidden');
+    });
+
+    // Section labels restore করো
+    DOM.navList.querySelectorAll('.nav-section-label').forEach(el => {
+      el.style.display = '';
+    });
+
+    // Highlight remove করো
+    DOM.navList.querySelectorAll('mark.search-highlight').forEach(mark => {
+      const parent = mark.parentNode;
+      if (parent) {
+        parent.replaceChild(
+          document.createTextNode(mark.textContent),
+          mark
+        );
+        parent.normalize();
+      }
+    });
+
+    // Input clear
+    if (DOM.sidebarSearchInput) DOM.sidebarSearchInput.value = '';
+    if (DOM.sidebarSearchClear) DOM.sidebarSearchClear.classList.remove('visible');
+    if (DOM.sidebarSearchMeta) DOM.sidebarSearchMeta.textContent = '';
+
+    // Active menu-র parent reopen করো
+    const activeItem = DOM.navList.querySelector('.nav-item.active');
+    if (activeItem) {
+      let parent = activeItem.parentElement;
+      while (parent && parent !== DOM.navList) {
+        if (parent.classList.contains('nav-submenu')) {
+          const parentItem = parent.parentElement;
+          if (parentItem) openSubmenu(parentItem);
+        }
+        parent = parent.parentElement;
+      }
+    }
+  }
+
+  /* ══════════════════════════════════════════════════════
+     COMMAND PALETTE
+  ══════════════════════════════════════════════════════ */
+
+  function openCommandPalette() {
+    if (!DOM.commandPaletteOverlay) return;
+    DOM.commandPaletteOverlay.classList.add('open');
+    DOM.commandPaletteOverlay.setAttribute('aria-hidden', 'false');
+    STATE.cpFocusedIndex = -1;
+
+    // Recent menus দেখাও
+    renderRecentMenus();
+
+    // Input focus
+    setTimeout(() => {
+      if (DOM.cpSearchInput) {
+        DOM.cpSearchInput.value = '';
+        DOM.cpSearchInput.focus();
+      }
+      showCPSection('recent');
+    }, 50);
+  }
+
+  function closeCommandPalette() {
+    if (!DOM.commandPaletteOverlay) return;
+    DOM.commandPaletteOverlay.classList.remove('open');
+    DOM.commandPaletteOverlay.setAttribute('aria-hidden', 'true');
+    STATE.cpFocusedIndex = -1;
+    STATE.cpCurrentResults = [];
+    if (DOM.cpSearchInput) DOM.cpSearchInput.value = '';
+  }
+
+  function showCPSection(section) {
+    // 'recent' | 'search' | 'empty'
+    if (DOM.cpRecentSection)
+      DOM.cpRecentSection.style.display = section === 'recent' ? '' : 'none';
+    if (DOM.cpSearchSection)
+      DOM.cpSearchSection.style.display = section === 'search' ? '' : 'none';
+    if (DOM.cpNoResults)
+      DOM.cpNoResults.style.display = section === 'empty' ? '' : 'none';
+  }
+
+  // Recently visited menus render করো
+  function renderRecentMenus() {
+    if (!DOM.cpRecentList) return;
+
+    const recent = STATE.recentMenus;
+
+    if (recent.length === 0) {
+      DOM.cpRecentList.innerHTML =
+        `<li style="padding:12px 16px;font-size:12px;color:var(--text-muted);">
+                No recently visited pages yet.
+             </li>`;
+      return;
+    }
+
+    DOM.cpRecentList.innerHTML = '';
+    recent.forEach((item, index) => {
+      DOM.cpRecentList.appendChild(
+        buildCPResultItem(item, index, '')
+      );
+    });
+  }
+
+  // Command Palette search
+  function handleCPSearch(query) {
+    query = query.trim();
+    STATE.cpFocusedIndex = -1;
+
+    if (!query) {
+      renderRecentMenus();
+      showCPSection('recent');
+      return;
+    }
+
+    // Flat menu list থেকে search করো
+    const flatList = buildFlatMenuList(STATE.menuData);
+    const lowerQ = query.toLowerCase();
+
+    // Score করে sort করো — exact match সবার উপরে
+    const results = flatList
+      .map(item => {
+        const labelLower = item.label.toLowerCase();
+        const pathLower = item.pathStr.toLowerCase();
+        let score = 0;
+
+        if (labelLower === lowerQ) score = 100; // Exact
+        else if (labelLower.startsWith(lowerQ)) score = 80;  // Starts with
+        else if (labelLower.includes(lowerQ)) score = 60;  // Contains
+        else if (pathLower.includes(lowerQ)) score = 40;  // Path contains
+
+        return { ...item, score };
+      })
+      .filter(item => item.score > 0)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 20); // সর্বোচ্চ ২০টা result
+
+    STATE.cpCurrentResults = results;
+
+    if (results.length === 0) {
+      if (DOM.cpNoResultsQuery) DOM.cpNoResultsQuery.textContent = query;
+      showCPSection('empty');
+      return;
+    }
+
+    // Result count label
+    if (DOM.cpSearchResultLabel) {
+      DOM.cpSearchResultLabel.textContent =
+        `${results.length} result${results.length > 1 ? 's' : ''}`;
+    }
+
+    // Render results
+    if (DOM.cpSearchList) {
+      DOM.cpSearchList.innerHTML = '';
+      results.forEach((item, index) => {
+        DOM.cpSearchList.appendChild(
+          buildCPResultItem(item, index, query)
+        );
+      });
+    }
+
+    showCPSection('search');
+  }
+
+  // একটা CP result item তৈরি করো
+  function buildCPResultItem(item, index, query) {
+    const li = document.createElement('li');
+    li.className = 'cp-result-item';
+    li.dataset.index = index;
+    li.dataset.url = item.url || '';
+    li.dataset.id = item.id || '';
+    li.setAttribute('role', 'option');
+
+    // Path string তৈরি করো (parent > parent > label)
+    const pathParts = item.path || [item.label];
+    const displayPath = pathParts.length > 1
+      ? pathParts.slice(0, -1)
+        .map(p => `<span>${p}</span>`)
+        .join('<span class="path-sep">›</span>')
+      : '';
+
+    // Label highlight করো
+    const highlightedLabel = query
+      ? highlightText(item.label, query)
+      : item.label;
+
+    li.innerHTML = `
+        <div class="cp-item-icon">
+            <i class="${item.icon || 'fa-solid fa-circle-dot'}"></i>
+        </div>
+        <div class="cp-item-content">
+            <div class="cp-item-label">${highlightedLabel}</div>
+            ${displayPath
+        ? `<div class="cp-item-path">${displayPath}</div>`
+        : ''}
+        </div>
+        <i class="fa-solid fa-arrow-right cp-item-arrow"></i>
+    `;
+
+    // Click → content load করো
+    li.addEventListener('click', () => {
+      handleCPItemSelect(item);
+    });
+
+    return li;
+  }
+
+  function handleCPItemSelect(item) {
+    if (!item.url) return;
+
+    closeCommandPalette();
+
+    // Recently visited-এ save করো
+    addToRecentMenus(item);
+
+    // Sidebar-এ active set করো
+    if (DOM.navList && item.id) {
+      const navItem = DOM.navList.querySelector(`.nav-item[data-id="${item.id}"]`);
+      if (navItem) setActiveNavItem(navItem);
+    }
+
+    // Content load করো
+    const cleanUrl = item.url.replace(/^\.\.\//, '/');
+    showLoader();
+
+    fetch(cleanUrl, {
+      headers: { 'X-Requested-With': 'XMLHttpRequest' },
+      credentials: 'same-origin'
+    })
+      .then(r => r.text())
+      .then(html => {
+        DOM.appMain.scrollTop = 0;
+        DOM.contentArea.innerHTML = html;
+        reinitKendoWidgets(DOM.contentArea);
+        history.pushState({ url: cleanUrl, menuId: item.id }, '', cleanUrl);
+      })
+      .catch(() => {
+        DOM.contentArea.innerHTML = buildErrorPage(cleanUrl, 'Load failed');
+      })
+      .finally(() => hideLoader());
+  }
+
+  // Recently visited manage করো
+  function addToRecentMenus(item) {
+    // Duplicate remove করো
+    STATE.recentMenus = STATE.recentMenus.filter(r => r.id !== item.id);
+
+    // নতুন item সবার উপরে
+    STATE.recentMenus.unshift({
+      id: item.id,
+      label: item.label,
+      url: item.url,
+      icon: item.icon,
+      path: item.path
+    });
+
+    // Max limit রাখো
+    if (STATE.recentMenus.length > STATE.maxRecentMenus) {
+      STATE.recentMenus = STATE.recentMenus.slice(0, STATE.maxRecentMenus);
+    }
+
+    // localStorage-এ save করো (session persist)
+    try {
+      localStorage.setItem('es_recent_menus', JSON.stringify(STATE.recentMenus));
+    } catch (e) { /* ignore */ }
+  }
+
+  function loadRecentMenus() {
+    try {
+      const saved = localStorage.getItem('es_recent_menus');
+      if (saved) STATE.recentMenus = JSON.parse(saved);
+    } catch (e) {
+      STATE.recentMenus = [];
+    }
+  }
+
+  // Keyboard navigation
+  function handleCPKeydown(e) {
+    const isSearchMode = DOM.cpSearchSection &&
+      DOM.cpSearchSection.style.display !== 'none';
+
+    const list = isSearchMode ? DOM.cpSearchList : DOM.cpRecentList;
+    const items = list ? Array.from(list.querySelectorAll('.cp-result-item')) : [];
+
+    if (items.length === 0) return;
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      STATE.cpFocusedIndex = Math.min(
+        STATE.cpFocusedIndex + 1,
+        items.length - 1
+      );
+      updateCPFocus(items);
+
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      STATE.cpFocusedIndex = Math.max(STATE.cpFocusedIndex - 1, 0);
+      updateCPFocus(items);
+
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      if (STATE.cpFocusedIndex >= 0 && items[STATE.cpFocusedIndex]) {
+        items[STATE.cpFocusedIndex].click();
+      }
+    }
+  }
+
+  function updateCPFocus(items) {
+    items.forEach((item, i) => {
+      item.classList.toggle('cp-focused', i === STATE.cpFocusedIndex);
+      if (i === STATE.cpFocusedIndex) {
+        item.scrollIntoView({ block: 'nearest' });
+      }
+    });
+  }
+
+  // Text highlight helper
+  function highlightText(text, query) {
+    if (!query) return text;
+    const escaped = escapeRegex(query);
+    return text.replace(
+      new RegExp(`(${escaped})`, 'gi'),
+      '<mark>$1</mark>'
+    );
+  }
+
+  function escapeRegex(str) {
+    return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   }
 
   /* ══════════════════════════════════════
