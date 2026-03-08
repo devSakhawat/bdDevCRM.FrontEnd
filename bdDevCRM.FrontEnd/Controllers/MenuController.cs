@@ -1,6 +1,6 @@
 ﻿namespace bdDevCRM.FrontEnd.Controllers
 {
-	using EnterpriseSuite.Services;
+	using bdDevCRM.FrontEnd.Services;
 	using Microsoft.AspNetCore.Mvc;
 	using System.Security.Claims;
 
