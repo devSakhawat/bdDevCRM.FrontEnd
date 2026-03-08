@@ -13,15 +13,16 @@
      CONFIGURATION
   ══════════════════════════════════════ */
   const CONFIG = {
-    menuApiUrl: '/Menu/GetSidebarMenu',        // Server endpoint for menu JSON
-    contentBaseUrl: '',                    // Base URL for content pages
+    menuApiUrl: '/Menu/GetSidebarMenu',
+    contentBaseUrl: '',
     storageKeys: {
       theme: 'es_theme',
       sidebarCollapsed: 'es_sidebar_collapsed',
       activeMenuId: 'es_active_menu'
     },
     breakpointMobile: 768,
-    animationDuration: 250
+    animationDuration: 250,
+
   };
 
   /* ══════════════════════════════════════
@@ -49,7 +50,8 @@
     settingsBtn: document.getElementById('settingsBtn'),
     markAllRead: document.getElementById('markAllRead'),
     currentDateTime: document.getElementById('currentDateTime'),
-    globalSearch: document.getElementById('globalSearch')
+    globalSearch: document.getElementById('globalSearch'),
+    sidebarFooterInfo: document.getElementById('sidebarFooterInfo')
   };
 
   /* ══════════════════════════════════════
@@ -76,6 +78,7 @@
     bindEvents();
     startClock();
     handleResize();
+    renderTidyUpButton();
     window.addEventListener('resize', debounce(handleResize, 200));
   }
 
@@ -169,6 +172,7 @@
 
       const data = await response.json();
       STATE.menuData = data;
+
       renderMenu(data);
       restoreActiveMenu();
 
@@ -219,9 +223,7 @@
     let currentSection = null;
 
     menuItems.forEach(item => {
-      if (!item.permission) return;
-
-      // Section divider
+      // ── Section divider (when only section) ──
       if (item.section && item.section !== currentSection) {
         currentSection = item.section;
         const label = document.createElement('li');
@@ -260,7 +262,8 @@
     // Icon
     if (item.icon) {
       const icon = document.createElement('i');
-      icon.className = `${item.icon} nav-icon`;
+      //icon.className = `${item.icon} nav-icon`;
+      icon.className = `${resolveMenuIcon(item.label, item.icon)} nav-icon`;
       link.appendChild(icon);
     }
 
@@ -349,6 +352,42 @@
             </li>`;
   }
 
+  // layout.js-এ এই helper function যোগ করুন
+  function resolveMenuIcon(label, existingIcon) {
+    // Server থেকে আসা icon যদি generic হয় তাহলে override করো
+    if (existingIcon && existingIcon !== 'fa-solid fa-briefcase') {
+      return existingIcon; // Server-এর icon ঠিক আছে, সেটাই ব্যবহার করো
+    }
+
+    // Label দেখে icon assign করো
+    const iconMap = {
+      'home': 'fa-solid fa-house',
+      'dashboard': 'fa-solid fa-gauge-high',
+      'system admin': 'fa-solid fa-shield-halved',
+      'menu settings': 'fa-solid fa-bars',
+      'module settings': 'fa-solid fa-cubes',
+      'user settings': 'fa-solid fa-users-gear',
+      'group settings': 'fa-solid fa-user-lock',
+      'system settings': 'fa-solid fa-gear',
+      'access settings': 'fa-solid fa-key',
+      'access restriction': 'fa-solid fa-ban',
+      'access permission report': 'fa-solid fa-file-shield',
+      'sbu settings': 'fa-solid fa-building',
+      'work flow settings': 'fa-solid fa-diagram-project',
+      'device setup': 'fa-solid fa-desktop',
+      'hris settings': 'fa-solid fa-sliders',
+      'currency': 'fa-solid fa-coins',
+      'payment method': 'fa-solid fa-credit-card',
+      'quary analyzer information': 'fa-solid fa-magnifying-glass-chart',
+      'institute type': 'fa-solid fa-school',
+      'intake month': 'fa-solid fa-calendar',
+      'intake year': 'fa-solid fa-calendar-days',
+    };
+
+    const key = label.toLowerCase().trim();
+    return iconMap[key] || 'fa-solid fa-circle-dot'; // default icon
+  }
+
   /* ══════════════════════════════════════
      MENU — SUBMENU ACCORDION
   ══════════════════════════════════════ */
@@ -364,6 +403,7 @@
       siblings.forEach(s => closeSubmenu(s));
       openSubmenu(navItem);
     }
+    updateTidyUpButton();
   }
 
   function openSubmenu(navItem) {
@@ -388,31 +428,84 @@
   /* ══════════════════════════════════════
      MENU — ACTIVE STATE
   ══════════════════════════════════════ */
+  //function setActiveNavItem(clickedItem) {
+  //  // Clear all active
+  //  if (DOM.navList) {
+  //    DOM.navList.querySelectorAll('.nav-item.active').forEach(item => {
+  //      item.classList.remove('active');
+  //    });
+  //  }
+
+  //  // Set active on clicked item
+  //  clickedItem.classList.add('active');
+  //  STATE.activeMenuId = clickedItem.dataset.id;
+  //  localStorage.setItem(CONFIG.storageKeys.activeMenuId, STATE.activeMenuId);
+
+  //  // Walk up and highlight parent items + keep them open
+  //  let parent = clickedItem.parentElement;
+  //  while (parent && parent !== DOM.navList) {
+  //    if (parent.classList.contains('nav-submenu')) {
+  //      const parentItem = parent.parentElement;
+  //      if (parentItem && parentItem.classList.contains('nav-item')) {
+  //        parentItem.classList.add('active');
+  //        openSubmenu(parentItem);
+  //      }
+  //    }
+  //    parent = parent.parentElement;
+  //  }
+  //}
+
   function setActiveNavItem(clickedItem) {
-    // Clear all active
+    // ── All active class remove ────────────────────────────────────
     if (DOM.navList) {
       DOM.navList.querySelectorAll('.nav-item.active').forEach(item => {
         item.classList.remove('active');
       });
     }
 
-    // Set active on clicked item
+    // ── Clicked item active  ──────────────────────────────────
     clickedItem.classList.add('active');
     STATE.activeMenuId = clickedItem.dataset.id;
     localStorage.setItem(CONFIG.storageKeys.activeMenuId, STATE.activeMenuId);
 
-    // Walk up and highlight parent items + keep them open
+    // ── Find Root parent and highlight it ──
+    const rootParent = findRootParent(clickedItem);
+    if (rootParent && rootParent !== clickedItem) {
+      rootParent.classList.add('active');
+    }
+
+    // ── সব ancestor open রাখো (accordion collapse হবে না) ────────
+    // কিন্তু active class শুধু root এবং clicked item-এ
     let parent = clickedItem.parentElement;
     while (parent && parent !== DOM.navList) {
       if (parent.classList.contains('nav-submenu')) {
         const parentItem = parent.parentElement;
         if (parentItem && parentItem.classList.contains('nav-item')) {
-          parentItem.classList.add('active');
-          openSubmenu(parentItem);
+          openSubmenu(parentItem); // open রাখো
+          // active class দেবো না — শুধু root parent পাবে
         }
       }
       parent = parent.parentElement;
     }
+  }
+
+  function findRootParent(navItem) {
+    let current = navItem;
+    let rootParent = null;
+
+    while (current && current !== DOM.navList) {
+      if (
+        current.classList.contains('nav-item') &&
+        current.parentElement === DOM.navList
+      ) {
+        // এটাই root level item — navList এর direct child
+        rootParent = current;
+        break;
+      }
+      current = current.parentElement;
+    }
+
+    return rootParent;
   }
 
   function restoreActiveMenu() {
@@ -863,6 +956,118 @@
       clearTimeout(timer);
       timer = setTimeout(() => fn.apply(this, args), delay);
     };
+  }
+
+  /* ══════════════════════════════════════
+   SIDEBAR — TIDY UP TOGGLE BUTTON
+══════════════════════════════════════ */
+
+  function renderTidyUpButton() {
+    if (!DOM.sidebarFooterInfo) return;
+
+    const btn = document.createElement('button');
+    btn.className = 'tidy-up-btn';
+    btn.id = 'tidyUpBtn';
+    btn.setAttribute('title', 'Open / Close All Menus');
+    btn.setAttribute('aria-label', 'Toggle all menus');
+
+    btn.innerHTML = `
+        <i class="fa-solid fa-bars-staggered tidy-icon"></i>
+        <span class="tidy-label">Collapse All</span>
+    `;
+
+    btn.addEventListener('click', handleTidyUpClick);
+
+    // sidebar-footer-info এর শুরুতে insert করো
+    DOM.sidebarFooterInfo.insertBefore(btn, DOM.sidebarFooterInfo.firstChild);
+  }
+
+  function handleTidyUpClick() {
+    if (!DOM.navList) return;
+
+    // ── সব open menu খুঁজে বের করো ──────────────────────────────
+    const allOpenItems = Array.from(
+      DOM.navList.querySelectorAll('.nav-item.open')
+    );
+
+    const hasOpenMenus = allOpenItems.length > 0;
+
+    if (hasOpenMenus) {
+      // ════════════════════════════════════════════════════════
+      // Scenario 1: কিছু menu open আছে
+      // Active menu-র parent chain ছাড়া বাকি সব close করো
+      // ════════════════════════════════════════════════════════
+
+      // Active item-এর সব ancestor (parent chain) collect করো
+      const activeAncestors = getActiveAncestors();
+
+      allOpenItems.forEach(item => {
+        // Active menu-র ancestor হলে open রাখো, নইলে close করো
+        if (!activeAncestors.has(item)) {
+          closeSubmenu(item);
+        }
+      });
+
+    } else {
+      // ════════════════════════════════════════════════════════
+      // Scenario 2: সব menu closed আছে
+      // সব parent menu (children আছে এমন) open করো recursively
+      // ════════════════════════════════════════════════════════
+      const allParentItems = DOM.navList.querySelectorAll(
+        '.nav-item[data-has-children="true"]'
+      );
+
+      allParentItems.forEach(item => openSubmenu(item));
+    }
+
+    // Button label/icon update করো
+    updateTidyUpButton();
+  }
+
+  // Active menu-র সব ancestor collect করো (parent chain)
+  function getActiveAncestors() {
+    const ancestors = new Set();
+    if (!DOM.navList) return ancestors;
+
+    // Active item খুঁজো
+    const activeItem = DOM.navList.querySelector('.nav-item.active');
+    if (!activeItem) return ancestors;
+
+    // Active item থেকে উপরে উপরে যাও, সব parent collect করো
+    let current = activeItem.parentElement;
+    while (current && current !== DOM.navList) {
+      if (current.classList.contains('nav-item')) {
+        ancestors.add(current);
+      }
+      current = current.parentElement;
+    }
+
+    return ancestors;
+  }
+
+  // Button এর icon ও label update করো current state অনুযায়ী
+  function updateTidyUpButton() {
+    const btn = document.getElementById('tidyUpBtn');
+    if (!btn) return;
+
+    const hasOpenMenus = DOM.navList
+      ? DOM.navList.querySelectorAll('.nav-item.open').length > 0
+      : false;
+
+    const icon = btn.querySelector('.tidy-icon');
+    const label = btn.querySelector('.tidy-label');
+
+    if (hasOpenMenus) {
+      // কিছু open আছে → Collapse করার option দেখাও
+      if (icon) icon.className = 'fa-solid fa-bars-staggered tidy-icon';
+      if (label) label.textContent = 'Collapse All';
+      btn.setAttribute('title', 'Collapse open menus');
+    } else {
+      // সব closed → Expand করার option দেখাও
+      if (icon) icon.className = 'fa-solid fa-expand tidy-icon';
+      if (label) label.textContent = 'Expand All';
+      btn.setAttribute('title', 'Expand all menus');
+    }
   }
 
   /* ══════════════════════════════════════

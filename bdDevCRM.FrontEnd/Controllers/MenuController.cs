@@ -14,13 +14,12 @@
 			_menuService = menuService;
 		}
 
-		[HttpGet("GetSidebarMenu")]       // ← Action-level route
+		[HttpGet("GetSidebarMenu")]
 		public async Task<IActionResult> GetSidebarMenu()
 		{
 			try
 			{
 				// Development-এ userId = 1 hardcode
-				// Production-এ Claims থেকে নিন
 				var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
 				int userId = int.TryParse(userIdClaim, out int id) ? id : 1;
 

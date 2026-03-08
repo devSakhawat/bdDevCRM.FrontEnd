@@ -18,8 +18,8 @@
     --brand-purple:         #8b5cf6;
 
     /* Layout Dimensions */
-    --header-height:        80px;
-    --footer-height:        50px;
+    --header-height:        60px;
+    --footer-height:        40px;
     --sidebar-width:        260px;
     --sidebar-collapsed:    64px;
     --max-width:            1920px;
@@ -1464,4 +1464,54 @@ body.sidebar-collapsed .version-text {
     .content-area {
         padding: 0;
     }
+}
+
+
+/* ── Tidy Up Button ───────────────────────────────────────── */
+.tidy-up-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 12px;
+  margin-bottom: 10px;
+  border-radius: var(--border-radius-sm);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-sidebar);
+  color: var(--text-sidebar-muted);
+  font-size: var(--font-size-xs);
+  font-family: var(--font-ui);
+  font-weight: 500;
+  cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast);
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+  .tidy-up-btn:hover {
+    background: rgba(255, 255, 255, 0.10);
+    color: var(--text-sidebar);
+  }
+
+.tidy-icon {
+  font-size: 13px;
+  flex-shrink: 0;
+  width: 16px;
+  text-align: center;
+}
+
+.tidy-label {
+  transition: opacity var(--transition-base);
+}
+
+/* Collapsed sidebar-এ শুধু icon দেখাবে */
+body.sidebar-collapsed .tidy-label {
+  opacity: 0;
+  width: 0;
+  overflow: hidden;
+}
+
+body.sidebar-collapsed .tidy-up-btn {
+  justify-content: center;
+  padding: 8px;
 }
