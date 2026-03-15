@@ -1,0 +1,335 @@
+@model bdDevCRM.FrontEnd.Models.Auth.LoginViewModel
+@{
+    Layout = null; // Login page-এ কোনো _Layout নেই
+    ViewData["Title"] = "Sign In — bdDevCRM";
+}
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"]</title>
+
+    <!-- Kendo Default v2 Theme -->
+    <link rel="stylesheet" href="https://kendo.cdn.telerik.com/themes/9.0.0/default/default-main.css" />
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link href="~/css/login.css" rel="stylesheet" />
+    
+</head>
+<body>
+
+<div class="login-page">
+
+    <!-- ══════════════════════════════════════
+         LEFT PANEL — Brand & Visual
+    ══════════════════════════════════════ -->
+    <div class="login-left">
+        <div class="left-top">
+            <!-- Brand -->
+            <div class="brand-logo">
+                <div class="brand-icon">
+                    <i class="fa-solid fa-layer-group"></i>
+                </div>
+                <span class="brand-name">bdDevCRM</span>
+            </div>
+
+            <!-- Headline -->
+            <div class="left-headline">
+                <h1>
+                    Enterprise<br>
+                    Management<br>
+                    <span>Platform</span>
+                </h1>
+                <p>
+                    Unified workspace for CRM, HR, Payroll,
+                    Attendance and more — all in one place.
+                </p>
+
+                <!-- Feature pills -->
+                <div class="feature-pills">
+                    <div class="feature-pill">
+                        <i class="fa-solid fa-briefcase"></i> CRM
+                    </div>
+                    <div class="feature-pill">
+                        <i class="fa-solid fa-users"></i> HR
+                    </div>
+                    <div class="feature-pill">
+                        <i class="fa-solid fa-money-bill-wave"></i> Payroll
+                    </div>
+                    <div class="feature-pill">
+                        <i class="fa-solid fa-clock"></i> Attendance
+                    </div>
+                    <div class="feature-pill">
+                        <i class="fa-solid fa-chart-bar"></i> Reports
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Floating decoration cards -->
+        <div class="deco-card deco-card-1">
+            <div class="dc-label">Active Users</div>
+            <div class="dc-value">1,284</div>
+            <div class="dc-sub">↑ 12% this month</div>
+        </div>
+        <div class="deco-card deco-card-2">
+            <div class="dc-label">Modules</div>
+            <div class="dc-value">30+</div>
+            <div class="dc-sub">Fully integrated</div>
+        </div>
+
+        <div class="left-bottom">
+            <p>&copy; @DateTime.Now.Year bdDevCRM. All rights reserved.</p>
+        </div>
+    </div>
+
+    <!-- ══════════════════════════════════════
+         RIGHT PANEL — Login Form
+    ══════════════════════════════════════ -->
+    <div class="login-right">
+        <div class="login-form-wrapper">
+
+            <div class="form-header">
+                <h2>Welcome back</h2>
+                <p>Sign in to your account to continue</p>
+            </div>
+
+            <div class="form-card">
+
+                <!-- Server-side error/success alert -->
+                @if (!string.IsNullOrEmpty(ViewBag.ErrorMessage))
+                {
+                    <div class="alert alert-danger show">
+                        <i class="fa-solid fa-circle-exclamation"></i>
+                        <span>@ViewBag.ErrorMessage</span>
+                    </div>
+                }
+
+                <!-- JS alert (AJAX response) -->
+                <div class="alert alert-danger" id="loginAlert">
+                    <i class="fa-solid fa-circle-exclamation"></i>
+                    <span id="loginAlertMsg"></span>
+                </div>
+
+                <form id="loginForm" novalidate>
+                    @Html.AntiForgeryToken()
+
+                    <!-- Username -->
+                    <div class="form-group">
+                        <label class="form-label" for="loginId">Username</label>
+                        <div class="input-wrapper">
+                            <i class="fa-regular fa-user input-icon"></i>
+                            <input type="text"
+                                   id="loginId"
+                                   name="loginId"
+                                   class="form-input"
+                                   placeholder="Enter your username"
+                                   autocomplete="username"
+                                   autofocus
+                                   value="@(Model?.LoginId ?? "")" />
+                        </div>
+                        <div class="field-error" id="loginIdError">
+                            Please enter your username.
+                        </div>
+                    </div>
+
+                    <!-- Password -->
+                    <div class="form-group">
+                        <label class="form-label" for="password">Password</label>
+                        <div class="input-wrapper">
+                            <i class="fa-solid fa-lock input-icon"></i>
+                            <input type="password"
+                                   id="password"
+                                   name="password"
+                                   class="form-input"
+                                   placeholder="Enter your password"
+                                   autocomplete="current-password" />
+                            <button type="button" class="pwd-toggle" id="pwdToggle" aria-label="Toggle password visibility">
+                                <i class="fa-regular fa-eye" id="pwdToggleIcon"></i>
+                            </button>
+                        </div>
+                        <div class="field-error" id="passwordError">
+                            Please enter your password.
+                        </div>
+                    </div>
+
+                    <!-- Remember me + Forgot -->
+                    <div class="form-options">
+                        <label class="custom-check">
+                            <input type="checkbox" id="rememberMe" name="rememberMe" />
+                            <span>Remember me</span>
+                        </label>
+                        <a href="#" class="forgot-link" id="forgotPasswordLink">
+                            Forgot password?
+                        </a>
+                    </div>
+
+                    <!-- Submit -->
+                    <button type="submit" class="btn-login" id="btnLogin">
+                        <span class="btn-text">
+                            <i class="fa-solid fa-arrow-right-to-bracket"></i>
+                            Sign In
+                        </span>
+                        <span class="btn-spinner">
+                            <span class="spinner-ring"></span>
+                            <span style="font-size:13px;">Signing in...</span>
+                        </span>
+                    </button>
+
+                    <div class="form-divider">
+                        Secure login powered by bdDevCRM Enterprise
+                    </div>
+                </form>
+
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+(function () {
+    'use strict';
+
+    /* ── DOM refs ─────────────────────────────── */
+    const form       = document.getElementById('loginForm');
+    const loginIdEl  = document.getElementById('loginId');
+    const passwordEl = document.getElementById('password');
+    const rememberEl = document.getElementById('rememberMe');
+    const btnLogin   = document.getElementById('btnLogin');
+    const alertBox   = document.getElementById('loginAlert');
+    const alertMsg   = document.getElementById('loginAlertMsg');
+    const pwdToggle  = document.getElementById('pwdToggle');
+    const pwdIcon    = document.getElementById('pwdToggleIcon');
+
+    /* ── Password visibility toggle ──────────── */
+    pwdToggle.addEventListener('click', () => {
+        const isText = passwordEl.type === 'text';
+        passwordEl.type = isText ? 'password' : 'text';
+        pwdIcon.className = isText
+            ? 'fa-regular fa-eye'
+            : 'fa-regular fa-eye-slash';
+    });
+
+    /* ── Show / hide alert ────────────────────── */
+    function showAlert(msg) {
+        alertMsg.textContent = msg;
+        alertBox.classList.add('show');
+    }
+
+    function hideAlert() {
+        alertBox.classList.remove('show');
+    }
+
+    /* ── Field validation ─────────────────────── */
+    function validateField(input, errorEl, message) {
+        if (!input.value.trim()) {
+            input.classList.add('is-invalid');
+            errorEl.textContent = message;
+            errorEl.classList.add('show');
+            return false;
+        }
+        input.classList.remove('is-invalid');
+        errorEl.classList.remove('show');
+        return true;
+    }
+
+    /* ── Loading state ────────────────────────── */
+    function setLoading(loading) {
+        btnLogin.disabled = loading;
+        btnLogin.classList.toggle('loading', loading);
+    }
+
+    /* ── Form submit ──────────────────────────── */
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        hideAlert();
+
+        /* Client-side validation */
+        const v1 = validateField(
+            loginIdEl,
+            document.getElementById('loginIdError'),
+            'Please enter your username.'
+        );
+        const v2 = validateField(
+            passwordEl,
+            document.getElementById('passwordError'),
+            'Please enter your password.'
+        );
+
+        if (!v1 || !v2) return;
+
+        setLoading(true);
+
+        /* CSRF token */
+        const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
+
+        try {
+            const res = await fetch('/Account/Login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'RequestVerificationToken': token ?? ''
+                },
+                body: JSON.stringify({
+                    loginId:    loginIdEl.value.trim(),
+                    password:   passwordEl.value,
+                    rememberMe: rememberEl.checked
+                }),
+                credentials: 'same-origin'
+            });
+
+            const data = await res.json();
+
+            if (data.success) {
+                /* Redirect to dashboard */
+                window.location.href = data.redirectUrl || '/Home/Index';
+            } else {
+                showAlert(data.message || 'Invalid username or password.');
+                setLoading(false);
+                passwordEl.value = '';
+                passwordEl.focus();
+            }
+
+        } catch (err) {
+            showAlert('Connection error. Please try again.');
+            setLoading(false);
+        }
+    });
+
+    /* ── Clear errors on input ────────────────── */
+    [loginIdEl, passwordEl].forEach(input => {
+        input.addEventListener('input', () => {
+            input.classList.remove('is-invalid');
+            const errId = input.id + 'Error';
+            const errEl = document.getElementById(errId);
+            if (errEl) errEl.classList.remove('show');
+            hideAlert();
+        });
+    });
+
+    /* ── Enter key on username → focus password ─ */
+    loginIdEl.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            passwordEl.focus();
+        }
+    });
+
+    /* ── Forgot password ──────────────────────── */
+    document.getElementById('forgotPasswordLink')?.addEventListener('click', (e) => {
+        e.preventDefault();
+        // TODO: Forgot password page
+        alert('Please contact your system administrator to reset your password.');
+    });
+
+})();
+</script>
+
+</body>
+</html>

@@ -194,9 +194,9 @@ public partial class CRMContext : DbContext
 
 	public virtual DbSet<WfState> WfState { get; set; }
 
-	protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-#warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
-			=> optionsBuilder.UseSqlServer("Server=DESKTOP-OMQ8M9P; User ID=sa;password=bdDevs@3011; Database=dbDevCRM;TrustServerCertificate=true;");
+//	protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+//#warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
+//			=> optionsBuilder.UseSqlServer("Server=DESKTOP-OMQ8M9P; User ID=sa;password=bdDevs@3011; Database=dbDevCRM;TrustServerCertificate=true;");
 
 	protected override void OnModelCreating(ModelBuilder modelBuilder)
 	{
