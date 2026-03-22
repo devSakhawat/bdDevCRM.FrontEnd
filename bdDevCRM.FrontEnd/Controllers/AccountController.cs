@@ -9,7 +9,7 @@ public class AccountController : Controller
   private readonly IAuthService _authService;
   private readonly ILogger<AccountController> _logger;
 
-  // Session key constant — সব জায়গায় এটাই ব্যবহার করুন
+  // Session key constant —
   public const string SESSION_CURRENT_USER = "CurrentUser";
   public const string SESSION_LOGIN_TIME = "LoginTime";
   public const string SESSION_THEME = "Theme";

@@ -20,4 +20,9 @@
     </PackageReference>
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="wwwroot\Assest\Login\" />
+    <Folder Include="wwwroot\Assest\Layout\" />
+  </ItemGroup>
+
 </Project>

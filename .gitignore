@@ -334,6 +334,11 @@ __pycache__/
 
 
 *.zip
+.zip
+
+*.rar
+.rar
+
 files/
 
 # OpenCover UI analysis results

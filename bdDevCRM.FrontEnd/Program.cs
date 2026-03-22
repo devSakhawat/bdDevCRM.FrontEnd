@@ -17,12 +17,12 @@ builder.Services.AddDbContext<CRMContext>(options =>
 
 // ── Services ──────────────────────────────────────────────────
 builder.Services.AddScoped<IMenuService, MenuService>();
-builder.Services.AddScoped<IAuthService, AuthService>();    // ← নতুন
+builder.Services.AddScoped<IAuthService, AuthService>();
 
 // ── Session ───────────────────────────────────────────────────
 builder.Services.AddSession(options =>
 {
-  options.IdleTimeout = TimeSpan.FromHours(8);    // 8 ঘণ্টা
+  options.IdleTimeout = TimeSpan.FromHours(8);    // 4 Hours
   options.Cookie.HttpOnly = true;
   options.Cookie.IsEssential = true;
   options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
@@ -52,13 +52,13 @@ app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseRouting();
 
-app.UseSession(); 
+app.UseSession();
 app.UseMiddleware<AuthMiddleware>();
 app.UseAuthorization();
 
 // MVC default route
 app.MapControllerRoute(
-		name: "default",
-		pattern: "{controller=Home}/{action=Index}/{id?}");
+    name: "default",
+    pattern: "{controller=Home}/{action=Index}/{id?}");
 
 app.Run();

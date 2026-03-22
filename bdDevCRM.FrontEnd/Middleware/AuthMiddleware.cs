@@ -5,12 +5,7 @@ public class AuthMiddleware
   private readonly RequestDelegate _next;
 
   // এই routes-এ authentication check হবে না
-  private static readonly string[] PublicPaths =
-  [
-      "/account/login",
-            "/account/logout",
-            "/account/forgotpassword",
-        ];
+  private static readonly string[] PublicPaths = ["/account/login", "/account/logout", "/account/forgotpassword" ];
 
   public AuthMiddleware(RequestDelegate next)
   {

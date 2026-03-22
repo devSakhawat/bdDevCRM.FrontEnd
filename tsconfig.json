@@ -1,0 +1,58 @@
+{
+  "compilerOptions": {
+    "target": "ES6",
+    "module": "ESNext",
+    "moduleResolution": "node",
+    "strict": true,
+    "skipLibCheck": true,
+    "paths": {
+      "@core/*": [ "./src/core/*" ],
+      "@services/*": [ "./src/services/*" ],
+      "@types/*": [ "./src/types/*" ]
+    }
+  },
+  "include": [
+    "src/**/*",
+    "wwwroot/lib/kendo-2024-q4/typescript/kendo.all.d.ts" // Point to physical definition
+  ]
+}
+
+
+
+//{
+//  // TypeScript compiler configuration for bdDevCRM Frontend project.
+//  // Note: 'baseUrl' has been removed in newer TypeScript versions.
+//  // Use 'paths' with relative path mappings instead.
+//  "compilerOptions": {
+//    "paths": {
+//      // Default fallback: maps all non-aliased imports to the src folder.
+//      "*": [ "./bdDevCRM.FrontEnd/src/*" ],
+//      // Maps @core/* imports to the core subfolder under src.
+//      "@core/*": [ "./bdDevCRM.FrontEnd/src/core/*" ],
+//      // Maps @services/* imports to the services subfolder under src.
+//      "@services/*": [ "./bdDevCRM.FrontEnd/src/services/*" ],
+//      // Maps @types/* imports to the types subfolder under src.
+//      "@types/*": [ "./bdDevCRM.FrontEnd/src/types/*" ],
+//      // Maps @utils/* imports to the utils subfolder under src.
+//      "@utils/*": [ "./bdDevCRM.FrontEnd/src/utils/*" ]
+//    },
+//    // Includes global type declarations for jQuery and Kendo UI.
+//    "types": [ "jquery", "kendo-ui" ]
+//  }
+//}
+
+
+
+//{
+//  "compilerOptions": {
+//    "baseUrl": "./bdDevCRM.FrontEnd/src/*",
+//    "paths": {
+//      "*": [ "./bdDevCRM.FrontEnd/src/*" ],
+//      "@core/*": [ "core/*" ],
+//      "@services/*": [ "services/*" ],
+//      "@types/*": [ "types/*" ],
+//      "@utils/*": [ "utils/*" ]
+//    },
+//    "types": [ "jquery", "kendo-ui" ]
+//  }
+//}

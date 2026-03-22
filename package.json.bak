@@ -1,0 +1,9 @@
+{
+  "devDependencies": {
+    "@types/jquery": "^4.0.0",
+    "@types/kendo-ui": "^2023.2.6"
+  },
+  "dependencies": {
+    "jquery": "^4.0.0"
+  }
+}
